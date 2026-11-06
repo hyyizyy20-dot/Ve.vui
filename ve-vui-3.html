@@ -1,0 +1,141 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>Vẽ Vui - Studio vẽ tranh</title>
+<style>
+:root{--bg:#f4f3ff;--ink:#25243a;--purple:#7357e8;--line:#e4e1f4}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:system-ui,-apple-system,Segoe UI,sans-serif}
+header{padding:17px 20px;background:linear-gradient(110deg,#7459e9,#a06be8);color:white;display:flex;align-items:center;justify-content:space-between;gap:12px}
+h1{font-size:21px;margin:0}header p{font-size:12px;margin:3px 0 0;opacity:.9}
+main{max-width:1000px;margin:auto;padding:15px;display:grid;gap:13px}
+.toolbar{background:white;border:1px solid var(--line);border-radius:17px;padding:12px;display:flex;flex-wrap:wrap;align-items:center;gap:10px;box-shadow:0 5px 18px #30266a0b}
+.group{display:flex;align-items:center;gap:7px;flex-wrap:wrap}
+label{font-size:12px;font-weight:700;color:#66627c}
+button{border:1px solid var(--line);background:#fff;color:var(--ink);padding:9px 12px;border-radius:11px;font-weight:650;cursor:pointer}
+button.active{background:#eeeaff;border-color:var(--purple);color:#583fc8}
+button.primary{background:var(--purple);border-color:var(--purple);color:white}
+input[type=color]{width:38px;height:36px;border:0;background:transparent;padding:0;cursor:pointer}
+input[type=range]{width:110px;accent-color:var(--purple)}
+.board{background:white;border:1px solid var(--line);border-radius:18px;padding:10px;box-shadow:0 8px 24px #30266a0b}
+.canvas-wrap{width:100%;height:min(62vh,620px);min-height:300px;position:relative;overflow:hidden;border:1px dashed #d8d3ee;border-radius:12px;background-color:white;background-image:linear-gradient(45deg,#f2f1f7 25%,transparent 25%),linear-gradient(-45deg,#f2f1f7 25%,transparent 25%),linear-gradient(45deg,transparent 75%,#f2f1f7 75%),linear-gradient(-45deg,transparent 75%,#f2f1f7 75%);background-size:20px 20px;background-position:0 0,0 10px,10px -10px,-10px 0}
+canvas{display:block;width:100%;height:100%;touch-action:none;cursor:crosshair}
+.bottom{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;padding:10px 3px 0;color:#77738e;font-size:12px}
+.colors{display:flex;gap:7px;align-items:center;flex-wrap:wrap;max-width:100%}.swatch{width:27px;height:27px;flex:0 0 27px;border-radius:50%;border:2px solid white;box-shadow:0 0 0 1px #ccc;cursor:pointer}.swatch:focus{outline:2px solid var(--purple);outline-offset:2px}
+footer{text-align:center;color:#89859f;font-size:12px;padding:0 10px 18px}
+@media(max-width:540px){main{padding:10px}.toolbar{gap:9px}.group{width:100%;justify-content:flex-start}.canvas-wrap{height:55vh;min-height:280px}button{padding:8px 10px}}
+
+.templates.hidden{display:none}.templates{background:white;border:1px solid var(--line);border-radius:17px;padding:13px;box-shadow:0 5px 18px #30266a0b}
+.template-head{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:10px}
+.hint{font-size:12px;color:#89859f;margin-top:3px}
+.template-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:9px}
+.template-card{padding:7px;border:1px solid var(--line);border-radius:12px;background:#fff;display:flex;flex-direction:column;align-items:center;gap:5px;min-width:0}
+.template-card svg{width:100%;height:76px;display:block;background:#fff;border-radius:7px}
+.template-card span{font-size:12px}
+@media(max-width:540px){.template-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.template-card svg{height:90px}}
+</style>
+</head>
+<body>
+<header><div><h1>🎨 VẼ VUI</h1><p>Góc sáng tạo của bạn — vẽ gì cũng được!</p></div><div style="font-size:30px">🖌️</div></header>
+<main>
+<section class="toolbar">
+ <div class="group"><label>MÀU VẼ</label><input id="color" type="color" value="#29243f"><div class="colors" id="swatches"></div></div>
+ <div class="group"><label for="size">NÉT VẼ</label><input id="size" type="range" min="1" max="40" value="6"><span id="sizeValue">6 px</span></div>
+ <div class="group"><button id="pen" class="active">✏️ Bút vẽ</button><button id="eraser">🧽 Tẩy</button><button id="toggleTemplates" aria-expanded="false">🖼️ Hình mẫu</button></div>
+ <div class="group"><button id="undo">↶ Hoàn tác</button><button id="clear">🗑️ Xóa tranh</button><button id="save" class="primary">⬇️ Lưu PNG</button></div>
+</section>
+
+<section class="templates hidden" id="templateSection">
+ <div class="template-head"><div><strong>🖼️ HÌNH MẪU TÔ MÀU</strong><div class="hint">Chọn một hình để đưa lên khung vẽ nhé!</div></div><span class="hint">8 mẫu</span></div>
+ <div id="templateGrid" class="template-grid"></div>
+</section>
+<section class="board">
+ <div class="canvas-wrap"><canvas id="canvas" aria-label="Vùng vẽ tranh"></canvas></div>
+ <div class="bottom"><span>☝️ Dùng ngón tay hoặc chuột để vẽ lên khung.</span><span id="status">Sẵn sàng sáng tạo!</span></div>
+</section>
+</main>
+<footer>Vẽ Vui • Tranh được tạo ngay trên thiết bị của bạn.</footer>
+<script>
+const canvas=document.getElementById('canvas'),ctx=canvas.getContext('2d');
+const color=document.getElementById('color'),size=document.getElementById('size'),sizeValue=document.getElementById('sizeValue');
+let drawing=false,eraser=false,last=null,history=[],dpr=1;
+const wrap=document.querySelector('.canvas-wrap');
+function snapshot(){try{history.push(canvas.toDataURL());if(history.length>25)history.shift()}catch(e){}}
+function resize(){
+ const old=document.createElement('canvas');old.width=canvas.width;old.height=canvas.height;
+ if(old.width&&old.height)old.getContext('2d').drawImage(canvas,0,0);
+ const rect=wrap.getBoundingClientRect();dpr=Math.min(window.devicePixelRatio||1,2);
+ canvas.width=Math.round(rect.width*dpr);canvas.height=Math.round(rect.height*dpr);
+ ctx.setTransform(dpr,0,0,dpr,0,0);ctx.lineCap='round';ctx.lineJoin='round';
+ if(old.width&&old.height)ctx.drawImage(old,0,0,old.width,old.height,0,0,rect.width,rect.height);
+}
+new ResizeObserver(resize).observe(wrap);resize();
+function point(e){const r=canvas.getBoundingClientRect();return{x:e.clientX-r.left,y:e.clientY-r.top}}
+function start(e){e.preventDefault();canvas.setPointerCapture(e.pointerId);snapshot();drawing=true;last=point(e);ctx.beginPath();ctx.arc(last.x,last.y,Math.max(0.5,Number(size.value)/2),0,Math.PI*2);ctx.fillStyle=eraser?'#ffffff':color.value;ctx.fill()}
+function move(e){if(!drawing)return;e.preventDefault();const p=point(e);ctx.beginPath();ctx.moveTo(last.x,last.y);ctx.lineTo(p.x,p.y);ctx.strokeStyle=eraser?'#ffffff':color.value;ctx.lineWidth=Number(size.value);ctx.lineCap='round';ctx.lineJoin='round';ctx.stroke();last=p}
+function end(){drawing=false;last=null}
+canvas.addEventListener('pointerdown',start);canvas.addEventListener('pointermove',move);canvas.addEventListener('pointerup',end);canvas.addEventListener('pointercancel',end);
+function setMode(isEraser){eraser=isEraser;document.getElementById('pen').classList.toggle('active',!eraser);document.getElementById('eraser').classList.toggle('active',eraser);document.getElementById('status').textContent=eraser?'Đang dùng tẩy':'Đang dùng bút vẽ'}
+document.getElementById('pen').onclick=()=>setMode(false);document.getElementById('eraser').onclick=()=>setMode(true);
+size.oninput=()=>sizeValue.textContent=size.value+' px';
+document.getElementById('undo').onclick=()=>{const data=history.pop();if(!data){document.getElementById('status').textContent='Không còn bước để hoàn tác';return}const img=new Image();img.onload=()=>{ctx.clearRect(0,0,canvas.width,canvas.height);ctx.drawImage(img,0,0,canvas.clientWidth,canvas.clientHeight)};img.src=data};
+document.getElementById('clear').onclick=()=>{if(confirm('Bạn có chắc muốn xóa toàn bộ bức tranh?')){snapshot();ctx.clearRect(0,0,canvas.width,canvas.height);document.getElementById('status').textContent='Đã làm sạch khung vẽ'}};
+document.getElementById('save').onclick=()=>{const out=document.createElement('canvas');out.width=canvas.width;out.height=canvas.height;const c=out.getContext('2d');c.fillStyle='#fff';c.fillRect(0,0,out.width,out.height);c.drawImage(canvas,0,0);const a=document.createElement('a');a.download='tranh-ve-vui.png';a.href=out.toDataURL('image/png');a.click();document.getElementById('status').textContent='Đã lưu tranh PNG'};
+
+const templates = [
+["Mèo con",`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 600"><g fill="white" stroke="#222" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"><path d="M170 250L155 95 270 175Q300 160 330 175L445 95 430 250Q475 310 455 405Q435 510 300 510Q165 510 145 405Q125 310 170 250Z"/><path d="M210 320Q245 285 275 320M325 320Q355 285 390 320"/><path d="M290 365L310 365 300 380Z"/><path d="M300 380Q275 410 250 390M300 380Q325 410 350 390"/><path d="M150 365L65 345M150 395L65 405M450 365L535 345M450 395L535 405"/><path d="M220 455Q300 485 380 455"/></g></svg>`],
+["Bướm xinh",`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 600"><g fill="white" stroke="#222" stroke-width="10" stroke-linejoin="round"><path d="M290 285Q150 55 75 180Q10 330 275 350Q70 440 160 520Q250 550 300 365Q350 550 440 520Q530 440 325 350Q590 330 525 180Q450 55 310 285Z"/><ellipse cx="300" cy="340" rx="25" ry="105"/><path d="M290 245Q245 160 205 160M310 245Q355 160 395 160"/><circle cx="205" cy="160" r="13"/><circle cx="395" cy="160" r="13"/><path d="M300 440L245 485M300 440L355 485"/></g></svg>`],
+["Ngôi nhà",`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 600"><g fill="white" stroke="#222" stroke-width="10" stroke-linejoin="round"><path d="M75 285L300 85 525 285"/><path d="M125 260V520H475V260"/><rect x="245" y="365" width="110" height="155" rx="8"/><rect x="155" y="315" width="70" height="70"/><rect x="375" y="315" width="70" height="70"/><path d="M275 85V35H350V130"/><path d="M70 520H530"/></g></svg>`],
+["Bông hoa",`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 600"><g fill="white" stroke="#222" stroke-width="10" stroke-linejoin="round"><path d="M300 285C190 260 175 155 250 135Q300 120 300 235Q300 120 350 135Q425 155 310 285Q430 180 475 250Q510 315 330 325Q500 340 460 410Q420 480 310 350Q390 490 320 515Q250 540 290 350Q190 490 140 420Q95 350 270 325Q90 315 125 250Q165 180 290 285Z"/><circle cx="300" cy="310" r="62"/><path d="M300 372V545M300 465Q210 405 185 475Q220 525 300 495M300 500Q390 425 425 490Q390 550 300 530"/></g></svg>`],
+["Cá nhỏ",`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 600"><g fill="white" stroke="#222" stroke-width="10" stroke-linejoin="round"><path d="M115 300Q245 120 435 285L530 205V395L435 315Q245 480 115 300Z"/><path d="M245 185Q280 245 300 250M245 415Q280 355 300 350"/><circle cx="390" cy="270" r="17"/><path d="M150 300Q180 275 210 300Q180 325 150 300Z"/><path d="M80 190Q110 160 140 190M65 410Q95 380 125 410"/></g></svg>`],
+["Kem ốc quế",`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 600"><g fill="white" stroke="#222" stroke-width="10" stroke-linejoin="round"><path d="M175 300Q115 220 185 150Q230 105 280 155Q330 65 405 130Q490 200 420 300Z"/><path d="M175 300L300 535 420 300Z"/><path d="M220 355L375 480M260 430L395 330M330 480L390 400"/><circle cx="235" cy="225" r="12"/><circle cx="355" cy="190" r="12"/></g></svg>`],
+["Tên lửa",`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 600"><g fill="white" stroke="#222" stroke-width="10" stroke-linejoin="round"><path d="M300 65Q440 160 390 390L300 475 210 390Q160 160 300 65Z"/><circle cx="300" cy="245" r="48"/><path d="M210 335L115 430 205 445M390 335L485 430 395 445"/><path d="M250 440L230 525 300 485 370 525 350 440"/><path d="M260 540Q300 590 340 540"/></g></svg>`],
+["Khủng long",`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 600"><g fill="white" stroke="#222" stroke-width="10" stroke-linejoin="round"><path d="M115 365Q90 250 205 230L255 145 305 220 360 145 405 240Q495 270 465 380Q440 450 335 445L325 535H260L250 435Q190 455 175 535H110L145 405Z"/><circle cx="385" cy="285" r="14"/><path d="M430 350Q465 375 485 350M190 250L160 185M250 230L240 155M315 225L335 155"/><path d="M145 535H205M260 535H335"/></g></svg>`]
+];
+const grid=document.getElementById('templateGrid');
+const templateSection=document.getElementById('templateSection');
+const toggleTemplates=document.getElementById('toggleTemplates');
+toggleTemplates.addEventListener('click',()=>{
+ const opening=templateSection.classList.contains('hidden');
+ templateSection.classList.toggle('hidden',!opening);
+ toggleTemplates.classList.toggle('active',opening);
+ toggleTemplates.setAttribute('aria-expanded',String(opening));
+ if(opening) templateSection.scrollIntoView({behavior:'smooth',block:'nearest'});
+});
+templates.forEach(([name,svg],i)=>{
+ const btn=document.createElement('button');btn.type='button';btn.className='template-card';btn.innerHTML=svg+'<span>'+name+'</span>';
+ btn.addEventListener('click',()=>{
+  snapshot();
+  const img=new Image();
+  const blob=new Blob([svg],{type:'image/svg+xml'});
+  const url=URL.createObjectURL(blob);
+  img.onload=()=>{
+   ctx.clearRect(0,0,canvas.clientWidth,canvas.clientHeight);
+   ctx.fillStyle='#fff';ctx.fillRect(0,0,canvas.clientWidth,canvas.clientHeight);
+   const pad=14, w=canvas.clientWidth-pad*2, h=canvas.clientHeight-pad*2;
+   const scale=Math.min(w/600,h/600), dw=600*scale, dh=600*scale;
+   ctx.drawImage(img,(canvas.clientWidth-dw)/2,(canvas.clientHeight-dh)/2,dw,dh);
+   URL.revokeObjectURL(url);
+   document.getElementById('status').textContent='Đã chọn mẫu: '+name+' — hãy tô màu!';
+   setMode(false);
+  };
+  img.onerror=()=>{URL.revokeObjectURL(url);document.getElementById('status').textContent='Không tải được hình mẫu.'};
+  img.src=url;
+ });
+ grid.append(btn);
+});
+
+const palette=[
+'#000000','#29243f','#555555','#888888','#b8b8b8','#ffffff',
+'#7f1d1d','#dc2626','#f87171','#fb7185','#f472b6','#be185d',
+'#7c2d12','#ea580c','#fb923c','#fbbf24','#fde047','#fef3c7',
+'#365314','#65a30d','#84cc16','#22c55e','#10b981','#064e3b',
+'#164e63','#0891b2','#38bdf8','#60a5fa','#1d4ed8','#312e81',
+'#6d28d9','#a78bfa','#c4b5fd','#f5d0fe','#a21caf','#7e22ce',
+'#854d0e','#ca8a04','#d6b68a','#92400e','#a3a3a3','#e5e7eb'
+];
+const swatches=document.getElementById('swatches');palette.forEach(v=>{const b=document.createElement('button');b.type='button';b.className='swatch';b.style.background=v;b.title=v;b.setAttribute('aria-label','Chọn màu '+v);b.onclick=()=>{color.value=v;setMode(false);document.getElementById('status').textContent='Đã chọn màu '+v};swatches.append(b)});
+</script>
+</body></html>
